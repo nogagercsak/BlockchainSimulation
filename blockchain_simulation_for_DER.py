@@ -3,6 +3,10 @@ import time
 import random
 from flask import Flask, jsonify, request
 from numpy.random import laplace
+import matplotlib
+matplotlib.use('Agg')  # Set Matplotlib to use a non-GUI backend
+import matplotlib.pyplot as plt
+
 
 app = Flask(__name__)
 
@@ -104,6 +108,82 @@ blockchain.add_node("Node1", "producer")
 blockchain.add_node("Node2", "consumer")
 blockchain.add_node("Node3", "certificate_authority")
 
+# Data Visualization
+
+# Define the blockchain data function
+def get_blockchain_data():
+    # Example: return a simple list of blocks or data from your actual blockchain
+    blockchain = [
+        {"block": 1, "data": "Block 1 data"},
+        {"block": 2, "data": "Block 2 data"},
+        # Add more blocks here or retrieve from your storage
+    ]
+    return blockchain
+
+# Function to visualize the blockchain growth
+def visualize_chain_growth(blockchain):
+    # Create a plot of blockchain growth using real data
+    plt.figure(figsize=(10, 6))
+    
+    # Extract block numbers and data length from the blockchain
+    block_numbers = [block['index'] for block in blockchain.chain]  # Using 'index' for block number
+    block_data = [len(block['data']) for block in blockchain.chain]  # Data length from 'data'
+
+    # Plot the growth (block number vs. data length in the block)
+    plt.plot(block_numbers, block_data)
+
+    # Set labels and title for better clarity
+    plt.xlabel('Block Number')
+    plt.ylabel('Block Data Size')
+    plt.title('Blockchain Growth Visualization')
+
+    # Save the plot as an image
+    plot_path = 'static/chain_growth.png'
+    plt.savefig(plot_path)  # Save the plot as a file
+    plt.close()  # Close the plot to free memory
+
+    # Return the path to the saved image
+    return plot_path
+
+
+    # Save the plot to a file@app.route('/visualize/chain_growth', methods=['GET'])
+def visualize_chain():
+    plot_path = visualize_chain_growth(blockchain)
+    return jsonify({"message": "Chain growth visualization rendered", "image_path": plot_path})
+
+    plot_path = "/path/to/save/chain_growth.png"
+    plt.savefig(plot_path)  # Save the plot to a file
+    plt.close()  # Close the plot to free up memory
+
+    return plot_path
+
+
+def visualize_attack_recovery(metrics):
+    attack_types = [metric['attack_type'] for metric in metrics]
+    recovery_times = [metric['recovery_time'] for metric in metrics]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(attack_types, recovery_times, color='skyblue')
+    plt.title("Attack Recovery Times")
+    plt.xlabel("Attack Type")
+    plt.ylabel("Recovery Time (seconds)")
+    plt.show()
+
+def visualize_node_activity(blockchain):
+    roles = [data['role'] for node, data in blockchain.nodes.items()]
+    legitimate_count = roles.count("producer") + roles.count("consumer")
+    malicious_count = roles.count("malicious")  # Simulated attack nodes
+
+    labels = ['Legitimate Nodes', 'Malicious Nodes']
+    sizes = [legitimate_count, malicious_count]
+    colors = ['green', 'red']
+    explode = (0.1, 0)  # explode malicious nodes for emphasis
+
+    plt.figure(figsize=(8, 8))
+    plt.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%', shadow=True, startangle=140)
+    plt.title("Node Activity Distribution")
+    plt.show()
+
 # Flask APIs
 @app.route('/chain', methods=['GET'])
 def get_chain():
@@ -142,6 +222,24 @@ def get_block(index):
         return jsonify(blockchain.chain[index])
     else:
         return jsonify({"error": "Block index out of range"}), 400
+    
+@app.route('/visualize/chain_growth')
+def visualize_chain_growth_route():
+    # Fetch real blockchain data directly from the blockchain instance
+    plot_path = visualize_chain_growth(blockchain)  # Visualize using actual blockchain data
+    return jsonify({"image_url": plot_path})  # Return the image path as JSON
+
+@app.route('/visualize/attack_recovery', methods=['POST'])
+def visualize_recovery():
+    metrics = request.get_json().get('metrics')
+    visualize_attack_recovery(metrics)
+    return jsonify({"message": "Attack recovery visualization rendered"})
+
+@app.route('/visualize/node_activity', methods=['GET'])
+def visualize_nodes():
+    visualize_node_activity(blockchain)
+    return jsonify({"message": "Node activity visualization rendered"})
+
 
 # Run Flask App
 if __name__ == '__main__':
