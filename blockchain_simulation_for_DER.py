@@ -38,9 +38,26 @@ class Blockchain:
 
     def is_chain_valid(self):
         for i in range(1, len(self.chain)):
-            if self.chain[i]['previous_hash'] != self.chain[i - 1]['hash']:
+            current_block = self.chain[i]
+            previous_block = self.chain[i - 1]
+
+            # Recompute the hash of the previous block
+            recalculated_previous_hash = self.hash_block(
+                cert_data=previous_block['data'],
+                previous_hash=previous_block['previous_hash']
+            )
+
+            # Check if the stored hash matches the recalculated hash
+            if previous_block['hash'] != recalculated_previous_hash:
                 return False
+
+            # Check if the previous_hash of the current block matches the hash of the previous block
+            if current_block['previous_hash'] != previous_block['hash']:
+                return False
+
         return True
+
+
 
     def add_node(self, node_id, role):
         """Add a DER node with a role (producer, consumer, or certificate authority)."""
@@ -53,12 +70,25 @@ class Blockchain:
         if node_id in self.blacklist:
             return {"error": "Node is blacklisted for malicious activity"}
 
+        # Measure the transaction time before adding noise
+        tx_start = time.perf_counter()  # Start timing the transaction
+        
         # Add differential privacy using Laplace noise
-        noise = laplace(loc=0, scale=1)
-        cert_data += f"_noise_{noise}"
-        new_block = self.create_block(cert_data=cert_data, previous_hash=self.chain[-1]['hash'])
+        noise = laplace(loc=0, scale=1)  # Adjust 'scale' for noise level
+        noisy_cert_data = cert_data + f"_noise_{noise}"
+        
+        # Create the block
+        new_block = self.create_block(cert_data=noisy_cert_data, previous_hash=self.chain[-1]['hash'])
         self.nodes[node_id]["certificates"].append(new_block)
-        return new_block
+        
+        tx_end = time.perf_counter()  # End timing the transaction
+        
+        # Measure transaction speed
+        transaction_time = tx_end - tx_start
+        block_size = len(noisy_cert_data)  # Block size after adding noise
+        
+        return new_block, transaction_time, block_size
+
 
     def simulate_attack(self, attack_type):
         """Simulate attacks like replay attacks, DDoS, or certificate spoofing."""
@@ -68,16 +98,49 @@ class Blockchain:
             is_valid = self.is_chain_valid()
             return {"attack": "Replay Attack", "block_added": response, "chain_valid": is_valid}
         elif attack_type == "spoofing":
-            fake_node_id = "FakeNode"
+            fake_node_id = f"FakeNode_{random.randint(1, 100)}"  # Unique ID for each malicious node
             fake_cert_data = "FakeCertificate"
+            self.nodes[fake_node_id] = {"role": "malicious", "certificates": []}  # Add to malicious nodes
             response = self.issue_certificate(fake_node_id, fake_cert_data)
             return {"attack": "Certificate Spoofing", "response": response}
         elif attack_type == "ddos":
-            start_time = time.time()
-            for _ in range(1000):  # Simulate high transaction volume
+            transaction_times = []
+            start_time = time.perf_counter()  # Start timing the attack
+
+            # Process 1,000 transactions
+            for _ in range(1000):
+                tx_start = time.perf_counter()  # Start timing this transaction
                 self.create_block(cert_data=f"Noise_{random.randint(1, 1000)}", previous_hash=self.chain[-1]['hash'])
-            end_time = time.time()
-            return {"attack": "DDoS", "time_taken": end_time - start_time, "blocks_added": len(self.chain)}
+                tx_end = time.perf_counter()  # End timing this transaction
+                transaction_times.append(tx_end - tx_start)  # Record processing time for this transaction
+
+            end_time = time.perf_counter()  # End timing the attack
+            total_time = end_time - start_time
+            avg_tx_time = sum(transaction_times) / len(transaction_times)
+
+            # Measure real recovery time
+            recovery_start = time.perf_counter()
+            while True:
+                recovery_tx_start = time.perf_counter()
+                self.create_block(cert_data="Recovery Test", previous_hash=self.chain[-1]['hash'])
+                recovery_tx_end = time.perf_counter()
+                recovery_tx_time = recovery_tx_end - recovery_tx_start
+                
+                # Break the loop when processing time stabilizes to normal
+                if recovery_tx_time <= avg_tx_time * 1.2:  # 20% tolerance for "normal" time
+                    break
+
+            recovery_end = time.perf_counter()
+            recovery_time = recovery_end - recovery_start
+
+            return {
+                "attack": "DDoS",
+                "total_time": total_time,
+                "average_transaction_time": avg_tx_time,
+                "transactions_processed": len(transaction_times),
+                "recovery_time": recovery_time,
+                "transaction_times": transaction_times
+            }
         return {"error": "Unknown attack type"}
 
     def rollback_chain(self, block_index):
@@ -89,15 +152,26 @@ class Blockchain:
 
     def measure_recovery(self, attack_type):
         """Measure recovery time and validate chain after an attack."""
-        start_time = time.time()
+        start_time = time.perf_counter()
         attack_response = self.simulate_attack(attack_type)
-        recovery_time = time.time() - start_time
+        recovery_time = time.perf_counter() - start_time
         is_valid = self.is_chain_valid()
         return {
             "attack_type": attack_type,
             "attack_response": attack_response,
             "recovery_time": recovery_time,
             "chain_valid": is_valid
+        }
+    def get_node_activity(self):
+        legitimate_count = sum(1 for node in self.nodes.values() if node["role"] in ["producer", "consumer"])
+        malicious_count = sum(1 for node in self.nodes.values() if node["role"] == "malicious")
+        total_nodes = legitimate_count + malicious_count
+        return {
+            "total_nodes": total_nodes,
+            "legitimate_count": legitimate_count,
+            "malicious_count": malicious_count,
+            "legitimate_percentage": (legitimate_count / total_nodes) * 100 if total_nodes > 0 else 0,
+            "malicious_percentage": (malicious_count / total_nodes) * 100 if total_nodes > 0 else 0
         }
 
 # Initialize Blockchain
@@ -119,6 +193,26 @@ def get_blockchain_data():
         # Add more blocks here or retrieve from your storage
     ]
     return blockchain
+
+
+# Idenitfy and visualize node acitivity 
+
+def visualize_node_activity_distribution(node_activity):
+    labels = ["Legitimate Nodes", "Malicious Nodes"]
+    sizes = [node_activity["legitimate_count"], node_activity["malicious_count"]]
+    colors = ["green", "red"]
+    explode = (0.1, 0)  # Highlight malicious nodes
+    
+    plt.figure(figsize=(8, 8))
+    plt.pie(sizes, explode=explode, labels=labels, colors=colors, autopct="%1.1f%%", shadow=True, startangle=140)
+    plt.title("Node Activity Distribution")
+    
+    # Save the plot
+    plot_path = "static/node_activity_distribution.png"
+    plt.savefig(plot_path)
+    plt.close()
+    return plot_path
+
 
 # Function to visualize the blockchain growth
 def visualize_chain_growth(blockchain):
@@ -157,6 +251,46 @@ def visualize_chain():
 
     return plot_path
 
+# Collect data for plotting
+transaction_times = []
+block_sizes = []
+noise_levels = []
+
+# Simulate multiple certificates being issued
+for i in range(100):  # You can adjust the number of iterations
+    cert_data = f"Certificate {i}"
+    block, transaction_time, block_size = blockchain.issue_certificate("Node1", cert_data)
+    
+    # Track the data
+    transaction_times.append(transaction_time)
+    block_sizes.append(block_size)
+    noise_levels.append(abs(laplace(loc=0, scale=1)))  # Track the magnitude of the noise added
+
+def plot_transaction_performance(transaction_times, block_sizes, noise_levels):
+    plt.figure(figsize=(10, 6))
+    
+    # Scatter plot for block size vs noise level
+    plt.subplot(1, 2, 1)
+    plt.scatter(noise_levels, block_sizes, color='blue', alpha=0.5)
+    plt.title("Noise Level vs Block Size")
+    plt.xlabel("Noise Level")
+    plt.ylabel("Block Size (bytes)")
+
+    # Scatter plot for transaction time vs noise level
+    plt.subplot(1, 2, 2)
+    plt.scatter(noise_levels, transaction_times, color='red', alpha=0.5)
+    plt.title("Noise Level vs Transaction Time")
+    plt.xlabel("Noise Level")
+    plt.ylabel("Transaction Time (seconds)")
+
+    # Save the plot
+    plot_path = 'static/privacy_performance_plot.png'
+    plt.tight_layout()  # Adjust layout for clarity
+    plt.savefig(plot_path)
+    plt.close()
+
+    return plot_path
+
 
 def visualize_attack_recovery(metrics):
     attack_types = [metric['attack_type'] for metric in metrics]
@@ -167,7 +301,13 @@ def visualize_attack_recovery(metrics):
     plt.title("Attack Recovery Times")
     plt.xlabel("Attack Type")
     plt.ylabel("Recovery Time (seconds)")
-    plt.show()
+
+    # Save the plot as an image
+    plot_path = 'static/attack_recovery.png'
+    plt.savefig(plot_path)
+    plt.close()
+
+    return plot_path
 
 def visualize_node_activity(blockchain):
     roles = [data['role'] for node, data in blockchain.nodes.items()]
@@ -182,7 +322,14 @@ def visualize_node_activity(blockchain):
     plt.figure(figsize=(8, 8))
     plt.pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%', shadow=True, startangle=140)
     plt.title("Node Activity Distribution")
-    plt.show()
+
+    # Save the plot as an image
+    plot_path = 'static/node_activity.png'
+    plt.savefig(plot_path)
+    plt.close()
+
+    return plot_path
+
 
 # Flask APIs
 @app.route('/chain', methods=['GET'])
@@ -232,14 +379,26 @@ def visualize_chain_growth_route():
 @app.route('/visualize/attack_recovery', methods=['POST'])
 def visualize_recovery():
     metrics = request.get_json().get('metrics')
-    visualize_attack_recovery(metrics)
-    return jsonify({"message": "Attack recovery visualization rendered"})
+    plot_path = visualize_attack_recovery(metrics)
+    return jsonify({"message": "Attack recovery visualization rendered", "image_url": plot_path})
 
 @app.route('/visualize/node_activity', methods=['GET'])
 def visualize_nodes():
-    visualize_node_activity(blockchain)
-    return jsonify({"message": "Node activity visualization rendered"})
+    plot_path = visualize_node_activity(blockchain)
+    return jsonify({"message": "Node activity visualization rendered", "image_url": plot_path})
 
+@app.route("/node_activity", methods=["GET"])
+def node_activity():
+    node_activity = blockchain.get_node_activity()
+    plot_path = visualize_node_activity_distribution(node_activity)
+    node_activity["visualization_path"] = plot_path
+    return jsonify(node_activity)
+
+@app.route('/visualize/privacy_performance', methods=['GET'])
+def visualize_privacy_performance():
+    # Call the function to generate the plot
+    plot_path = plot_transaction_performance(transaction_times, block_sizes, noise_levels)
+    return jsonify({"message": "Privacy performance visualization rendered", "image_url": plot_path})
 
 # Run Flask App
 if __name__ == '__main__':
