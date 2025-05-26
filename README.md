@@ -169,7 +169,7 @@ GET /visualize/privacy_performance
 GET /visualize/node_activity
 ```
 
-## 🧪 Usage Examples
+## Usage Examples
 
 ### Basic Blockchain Operations
 
