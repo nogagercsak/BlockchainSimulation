@@ -3,9 +3,8 @@
 **Enhancing Cybersecurity in DER-Based Smart Grids with Blockchain and Differential Privacy**
 
 [![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-2.0+-green.svg)](https://flask.palletsprojects.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Research](https://img.shields.io/badge/Research-UNC%20Charlotte-purple.svg)](https://www.charlotte.edu/)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-purple.svg)](https://flask.palletsprojects.com/)
+[![Research](https://img.shields.io/badge/Research-UNC%20Charlotte-green.svg)](https://www.charlotte.edu/)
 
 ## 🔬 Research Overview
 
