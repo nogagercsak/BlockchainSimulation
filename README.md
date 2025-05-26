@@ -35,25 +35,25 @@ The framework implements a three-tier blockchain architecture:
                     └─────────────────────────────────────┘
 ```
 
-## 🚀 Features
+## Features
 
-### 🔐 Security
+### Security
 - **Proof-of-Authority (PoA) Consensus**: Lightweight consensus mechanism optimized for DER environments
 - **Certificate Management**: Secure, immutable certificate issuance and validation
 - **Attack Resilience**: Protection against replay, spoofing, and DDoS attacks
 - **Node Blacklisting**: Automatic identification and isolation of malicious nodes
 
-### 🔒 Privacy Protection
+### Privacy Protection
 - **Laplace Differential Privacy**: Configurable noise injection to protect sensitive energy data
 - **Minimal Overhead**: Privacy protection with negligible performance impact
 - **Utility Preservation**: Data remains useful for grid operations while protecting individual privacy
 
-### 📊 Performance Monitoring
+### Performance Monitoring
 - **Real-time Metrics**: Transaction latency, block creation times, attack recovery
 - **Visualization Tools**: Comprehensive plotting and analysis capabilities
 - **Scalability Testing**: Support for testing with varying node counts
 
-### 🛡️ Attack Simulation
+### Attack Simulation
 - **Replay Attacks**: Duplicate transaction detection and prevention
 - **Certificate Spoofing**: Fake node identification and blocking
 - **DDoS Simulation**: High-volume transaction stress testing
