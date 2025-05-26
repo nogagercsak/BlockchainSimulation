@@ -16,7 +16,7 @@ This repository contains the implementation of a novel cybersecurity framework t
 - **90% performance retention** during DDoS attacks
 - **Consistent 0.85s** block creation times
 
-## 🏗️ Architecture
+## 🏗 Architecture
 
 The framework implements a three-tier blockchain architecture:
 
@@ -264,23 +264,6 @@ If you use this framework in your research, please cite:
   url={https://github.com/your-username/blockchain-dp-der-security}
 }
 ```
-
-## 🤝 Contributing
-
-We welcome contributions to improve the framework! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Areas for Contribution
-- **Consensus Mechanisms**: Implement alternative consensus algorithms
-- **Attack Vectors**: Add new attack simulation capabilities
-- **Performance Optimization**: Improve scalability and efficiency
-- **Visualization**: Enhance data visualization and analytics
-- **Integration**: Add support for real DER device protocols
 
 ## License
 This code is made available for academic research purposes only. 
